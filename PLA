@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+import sys
+import string
+import random
+import time
+from numpy import *
+from numpy.linalg import *
+
+"""
+按行读取数据，按照空格和\t将数据划分，转为两个数组:x和y。
+"""
+def Data_Pretreatment(path):
+    rawData = open(path).readlines();
+    dataNum = len(rawData)
+    dataDim = len(rawData[0].strip().split(' ')) + 1
+    dataIdx = 0
+    X = zeros([dataNum, dataDim])
+    X[:, 0] = 1
+    Y = zeros(dataNum)
+    print(dataNum, dataDim)
+
+    for line in rawData:
+        temp = line.strip().split('\t')
+        temp[0] = temp[0].split(' ')
+        Y[dataIdx] = string.atof(temp[1])
+        X[dataIdx, 1:] = double(temp[0])
+        dataIdx += 1
+
+    return (X, Y)
+
+def PLA_Cyle(X, Y, eta):
+    (dataNum, dataDim) = X.shape
+    W = ones(dataDim)
+
+    upDateTimes = 0
+
+    for i in range(0, dataNum):
+        dotProduct = dot(W, X[i])   #矩阵计算
+        if dotProduct * Y[i] > 0:
+            pass
+        else:
+            # PLA update: W(t+1) = W(t) + eta*Y(n)*X(n)
+            W += eta * Y[i] * X[i]
+            upDateTimes += 1
+
+    print ('upDateTimes: ', upDateTimes, '\n')
+    return (W, upDateTimes)
+
+def IsSuccess(X, Y, W):
+    (dataNum, dataNim) = X.shape
+    failCount = 0
+
+    for i in range(0, dataNum):
+        dotProduct = dot(W[0], X[i])
+        if dotProduct * Y[i] < 0:
+            failCount += 1
+
+    print ('failCount: ', failCount, '\n')
+
+if __name__ == '__main__':
+    (X, Y) = Data_Pretreatment("PLA_train.txt")
+    W = PLA_Cyle(X, Y, 1)
+    print W
+    IsSuccess(X, Y, W)
+
