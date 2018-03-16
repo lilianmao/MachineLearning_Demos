@@ -18,7 +18,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
       features: pandas DataFrame of features
       targets: pandas DataFrame of targets
       batch_size: Size of batches to be passed to the model - SGD算法中的随机选择样本的数量
-      shuffle: True or False. Whether to shuffle the data. - 是否混乱处理
+      shuffle: True or False. Whether to shuffle the data. - 是否混淆处理
       num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely - 是不是需要把原来的数据在训练一次
     Returns:
       Tuple of (features, labels) for next data batch
@@ -35,12 +35,15 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     if shuffle:
         ds = ds.shuffle(buffer_size=10000)  # 10000的数据重新洗牌
 
-    # Return the next batch of data
+    # make_one_shot_iterator()表示从dataset中实例化了一个Iterator
     # get_next()表示从iterator里取出一个元素
     features, labels = ds.make_one_shot_iterator().get_next()
     return features, labels
 
 california_housing_dataframe = pd.read_csv("https://storage.googleapis.com/mledu-datasets/california_housing_train.csv", sep=",")
+california_housing_dataframe = california_housing_dataframe.reindex(
+    np.random.permutation(california_housing_dataframe.index))
+california_housing_dataframe['median_house_value'] /= 1000.0
 
 def train_model(learning_rate, steps, batch_size, input_feature = "total_rooms"):
     """Trains a linear regression model of one feature.
@@ -68,7 +71,7 @@ def train_model(learning_rate, steps, batch_size, input_feature = "total_rooms")
     training_input_fn = lambda: my_input_fn(my_feature_data, targets, batch_size=batch_size)
     prediction_input_fn = lambda: my_input_fn(my_feature_data, targets, num_epochs=1, shuffle=False)
 
-    # optimizer
+    # 使用梯度下降算法做的优化器
     my_optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate)
     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
     linear_regressor = tf.estimator.LinearRegressor(
@@ -76,14 +79,15 @@ def train_model(learning_rate, steps, batch_size, input_feature = "total_rooms")
         optimizer = my_optimizer
     )
 
-    plt.figure(figsize=(15, 6))
-    plt.subplot(1, 2, 1)
+    plt.figure(figsize=(15, 6)) # 15cm*6cm
+    plt.subplot(1, 2, 1)    # subplot子图，使用这个函数的重点是将多个图像画在同一个绘画窗口.参数分别代表：行、列、第几个
     plt.title("Learned Line by Period")
     plt.ylabel(my_label)
     plt.xlabel(my_feature)
-    sample = california_housing_dataframe.sample(n=300)
-    plt.scatter(sample[my_feature], sample[my_label])
+    sample = california_housing_dataframe.sample(n=300) # 取样300个
+    plt.scatter(sample[my_feature], sample[my_label])   # 画三点图
     colors = [cm.coolwarm(x) for x in np.linspace(-1, 1, peroids)]
+    # 颜色调制，numpy.linspace(start, stop, num)，从start到stop之间，走num步
 
     # Train the model, but do so inside a loop so that we can periodically assess
     # loss metrics.
@@ -91,7 +95,7 @@ def train_model(learning_rate, steps, batch_size, input_feature = "total_rooms")
     print "RMSE (on training data):"
     root_mean_squared_errors = []
     for period in range(0, peroids):
-        # Train the model, starting from the prior state.
+        # 优化器开始训练，其中input_fn是要传入的函数，理论上函数每次打乱，给他系统新的数据训练。
         linear_regressor.train(
             input_fn=training_input_fn,
             steps=steps_per_period
@@ -119,7 +123,7 @@ def train_model(learning_rate, steps, batch_size, input_feature = "total_rooms")
                                           sample[my_feature].max()),
                                sample[my_feature].min())
         y_extents = weight * x_extents + bias
-        plt.plot(x_extents, y_extents, color=colors[period])
+        plt.plot(x_extents, y_extents, color=colors[period])    # 随机颜色在这里显示
     print "Model training finished."
 
     # Output a graph of loss metrics over periods.
@@ -140,15 +144,15 @@ def train_model(learning_rate, steps, batch_size, input_feature = "total_rooms")
     print "Final RMSE (on training data): %0.2f" % root_mean_squared_error
 
 
-# train_model(
-#     learning_rate=0.00002,
-#     steps=500,
-#     batch_size=5
-# )
-
 train_model(
     learning_rate=0.00002,
-    steps=1000,
-    batch_size=5,
-    input_feature="population"
+    steps=500,
+    batch_size=5
 )
+
+# train_model(
+#     learning_rate=0.00002,
+#     steps=1000,
+#     batch_size=5,
+#     input_feature="population"
+# )
