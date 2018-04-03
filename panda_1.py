@@ -24,6 +24,7 @@ cities['Population density'] = cities['Population'] / cities['Area square miles'
 print cities
 print "----------"
 
+# apply(func[, args[, kwargs]]) apply是间接调用func函数。
 cities['Is wide and has saint name'] = (cities['Area square miles']>50) & cities['City name'].apply(lambda name: name.startswith('San'))
 print cities
 print "----------"

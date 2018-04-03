@@ -19,7 +19,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
       targets: pandas DataFrame of targets
       batch_size: Size of batches to be passed to the model - SGD算法中的随机选择样本的数量
       shuffle: True or False. Whether to shuffle the data. - 是否混淆处理
-      num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely - 是不是需要把原来的数据在训练一次
+      num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely - 是不是需要把原来的数据再训练一次
     Returns:
       Tuple of (features, labels) for next data batch
     """
@@ -41,6 +41,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     return features, labels
 
 california_housing_dataframe = pd.read_csv("https://storage.googleapis.com/mledu-datasets/california_housing_train.csv", sep=",")
+# 重新建立索引
 california_housing_dataframe = california_housing_dataframe.reindex(
     np.random.permutation(california_housing_dataframe.index))
 california_housing_dataframe['median_house_value'] /= 1000.0
