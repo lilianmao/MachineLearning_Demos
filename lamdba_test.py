@@ -6,3 +6,7 @@ print list2
 
 list3 = np.minimum(list1, 2)
 print list3
+
+judgeTrueOrFalse = lambda x: 1 if x>0 else 0;
+for num in list1:
+    print judgeTrueOrFalse(num)
