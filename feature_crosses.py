@@ -61,41 +61,84 @@ def preprocess_targets(california_housing_dataframe):
     california_housing_dataframe["median_house_value"] / 1000.0)
   return output_targets
 
+# Choose the first 12000 (out of 17000) examples for training.
 training_examples = preprocess_features(california_housing_dataframe.head(12000))
 training_targets = preprocess_targets(california_housing_dataframe.head(12000))
 
+# Choose the last 5000 (out of 17000) examples for validation.
 validation_examples = preprocess_features(california_housing_dataframe.tail(5000))
 validation_targets = preprocess_targets(california_housing_dataframe.tail(5000))
 
-"""
-# Double-check that we've done the right thing.
-print "Training examples summary:"
-display.display(training_examples.describe())
-print "Validation examples summary:"
-display.display(validation_examples.describe())
+# 用以计算分位数的边界
+# quantile函数，计算分位的一个函数，如果参数是0.5，则是中位数；0.1，则是第10%的数值。
+# 其计算过程参见：https://blog.csdn.net/u011327333/article/details/71263081?locationnum=14&fps=1
+# 这个函数的详细理解就是：把Series分成了7份，分别在14%、28%、42%等各个位置找到相应的数值，并返回。
+def get_quantile_based_boundaries(feature_values, num_buckets):
+    boundaries = np.arange(1.0, num_buckets) / num_buckets
+    quantiles = feature_values.quantile(boundaries)
+    return [quantiles[q] for q in quantiles.keys()]
 
-print "Training targets summary:"
-display.display(training_targets.describe())
-print "Validation targets summary:"
-display.display(validation_targets.describe())
-"""
-
-correlation_dataframe = training_examples.copy()
-correlation_dataframe["target"] = training_targets["median_house_value"]
-
-print correlation_dataframe.corr()
-# 计算列的成对相关性，不包括NA值。使用皮尔逊相关系数，详见wiki：https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
-
+# 将features逐个进行分箱，矢量化。（这里应该是中位数分箱法，feature_sets那个文件里是直接按照数值平均分箱的。）
 def construct_feature_columns(input_features):
   """Construct the TensorFlow Feature Columns.
 
-  Args:
-    input_features: The names of the numerical input features to use.
   Returns:
     A set of feature columns
   """
-  return set([tf.feature_column.numeric_column(my_feature)
-              for my_feature in input_features])
+  households = tf.feature_column.numeric_column("households")
+  longitude = tf.feature_column.numeric_column("longitude")
+  latitude = tf.feature_column.numeric_column("latitude")
+  housing_median_age = tf.feature_column.numeric_column("housing_median_age")
+  median_income = tf.feature_column.numeric_column("median_income")
+  rooms_per_person = tf.feature_column.numeric_column("rooms_per_person")
+
+  # Divide households into 7 buckets.
+  # bucketized_column函数，官方网站上有：https://www.tensorflow.org/versions/r1.2/api_docs/python/tf/feature_column/bucketized_column
+  # 这个函数的具体意义就是按照boundaries，对数据进行拆分，矢量化。
+  bucketized_households = tf.feature_column.bucketized_column(
+    households, boundaries=get_quantile_based_boundaries(
+      training_examples["households"], 7))
+
+  # Divide longitude into 10 buckets.
+  bucketized_longitude = tf.feature_column.bucketized_column(
+    longitude, boundaries=get_quantile_based_boundaries(
+      training_examples["longitude"], 10))
+
+  # Divide latitude into 10 buckets.
+  bucketized_latitude = tf.feature_column.bucketized_column(
+      latitude, boundaries=get_quantile_based_boundaries(
+          training_examples["latitude"], 10))
+
+  # Divide housing_median_age into 7 buckets.
+  bucketized_housing_median_age = tf.feature_column.bucketized_column(
+      housing_median_age, boundaries=get_quantile_based_boundaries(
+          training_examples["housing_median_age"], 7))
+
+  # Divide median_income into 7 buckets.
+  bucketized_median_income = tf.feature_column.bucketized_column(
+      median_income, boundaries=get_quantile_based_boundaries(
+          training_examples["median_income"], 7))
+
+  # Divide rooms_per_person into 7 buckets.
+  bucketized_rooms_per_person = tf.feature_column.bucketized_column(
+      rooms_per_person, boundaries=get_quantile_based_boundaries(
+          training_examples["rooms_per_person"], 7))
+
+  # longitude和latitude组合特征
+  # crossed_column：组合两个特征，第一个参数用的是set，第二个参数hash_bucket_size是取hash值，但是为什么要取hash值还不明白。
+  long_x_lat = tf.feature_column.crossed_column(set([bucketized_latitude, bucketized_longitude]), hash_bucket_size=1000)
+
+  feature_columns = set([
+    bucketized_longitude,
+    bucketized_latitude,
+    bucketized_housing_median_age,
+    bucketized_households,
+    bucketized_median_income,
+    bucketized_rooms_per_person,
+    long_x_lat])
+
+  return feature_columns
+
 
 
 def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
@@ -111,7 +154,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
       Tuple of (features, labels) for next data batch
     """
 
-    # Convert pandas data into a dict of np arrays
+    # Convert pandas data into a dict of np arrays.
     features = {key: np.array(value) for key, value in dict(features).items()}
 
     # Construct a dataset, and configure batching/repeating
@@ -131,6 +174,7 @@ def train_model(
         learning_rate,
         steps,
         batch_size,
+        feature_columns,
         training_examples,
         training_targets,
         validation_examples,
@@ -144,8 +188,8 @@ def train_model(
       learning_rate: A `float`, the learning rate.
       steps: A non-zero `int`, the total number of training steps. A training step
         consists of a forward and backward pass using a single batch.
-      batch_size: A non-zero `int`, the batch size.
-      training_examples: A `DataFrame` containing one or more colulmns from
+      feature_columns: A `set` specifying the input feature columns to use.
+      training_examples: A `DataFrame` containing one or more columns from
         `california_housing_dataframe` to use as input features for training.
       training_targets: A `DataFrame` containing exactly one column from
         `california_housing_dataframe` to use as target for training.
@@ -162,14 +206,13 @@ def train_model(
     steps_per_period = steps / periods
 
     # Create a linear regressor object.
-    my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+    my_optimizer = tf.train.FtrlOptimizer(learning_rate=learning_rate)
     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
     linear_regressor = tf.estimator.LinearRegressor(
-        feature_columns=construct_feature_columns(training_examples),
+        feature_columns=feature_columns,
         optimizer=my_optimizer
     )
 
-    # Create input functions
     training_input_fn = lambda: my_input_fn(training_examples,
                                             training_targets["median_house_value"],
                                             batch_size=batch_size)
@@ -192,12 +235,11 @@ def train_model(
         # Train the model, starting from the prior state.
         linear_regressor.train(
             input_fn=training_input_fn,
-            steps=steps_per_period,
+            steps=steps_per_period
         )
         # Take a break and compute predictions.
         training_predictions = linear_regressor.predict(input_fn=predict_training_input_fn)
         training_predictions = np.array([item['predictions'][0] for item in training_predictions])
-
         validation_predictions = linear_regressor.predict(input_fn=predict_validation_input_fn)
         validation_predictions = np.array([item['predictions'][0] for item in validation_predictions])
 
@@ -225,78 +267,12 @@ def train_model(
 
     return linear_regressor
 
-"""
-# 理想情况下，我们希望具有与目标密切相关的特征。
-# 此外，我们还希望有一些相互之间的相关性不太密切的特征，以便它们添加独立信息。
-# latitude和target的相关系数是-0.1，而median_income和target的相关系数是0.7。
-minimal_features = [
-    "latitude",
-    "median_income"
-]
-
-assert minimal_features, "You must select at least one feature!"
-
-minimal_training_examples = training_examples[minimal_features]
-minimal_validation_examples = validation_examples[minimal_features]
-
-
-# 调整参数，以达到最佳训练效果。
-train_model(
-    learning_rate=0.01,
+_ = train_model(
+    learning_rate=1.0,
     steps=500,
-    batch_size=5,
-    training_examples=minimal_training_examples,
+    batch_size=100,
+    feature_columns=construct_feature_columns(training_examples),
+    training_examples=training_examples,
     training_targets=training_targets,
-    validation_examples=minimal_validation_examples,
+    validation_examples=validation_examples,
     validation_targets=validation_targets)
-"""
-
-"""
-# 观察latitude和median_house_value的关系图
-plt.scatter(training_examples["latitude"], training_targets["median_house_value"])
-plt.show()
-"""
-
-# zip函数详见菜鸟教程：http://www.runoob.com/python/python-func-zip.html
-# a = [1,2,3] b = [4,5,6] zip(a,b) = [(1,4), (2,5), (3,6)]
-LATITUDE_RANGES = zip(xrange(32, 44), xrange(33, 45))
-
-def select_and_transform_features(source_df):
-    selected_examples = pd.DataFrame()
-
-    selected_examples["median_income"] = source_df["median_income"]
-
-    # Method1：使用绝对值修改特征
-    # selected_examples["latitude"] = abs(source_df["latitude"] - 38)
-    # print selected_examples["latitude"]
-
-    # Method2：使用分箱修改特征，（32，33）分别是r[0],r[1]
-    # lambda表达式关于if的写法，注意先if判断成功的值写在前面。
-    # 这里selected_examples存放着除了median_income以外的12个Series，他们都是12000/5000维向量，他们指向一个方向，通过向量预测房价。
-    # 为什么要换成向量？因为维度本身存在大小差异，但是本身的大小差异是毫无意义的，所以把它离散化。
-    # 测试数据需要和训练数据做一致的处理，方可得到结果。
-    for r in LATITUDE_RANGES:
-        selected_examples["latitude_%d_to_%d" % r] = source_df["latitude"].apply(
-            lambda l: 1.0 if l >= r[0] and l < r[1] else 0.0)
-
-    return selected_examples
-
-selected_training_examples = select_and_transform_features(training_examples)
-selected_validation_examples = select_and_transform_features(validation_examples)
-
-train_model(
-    learning_rate=0.01,
-    steps=500,
-    batch_size=5,
-    training_examples=selected_training_examples,
-    training_targets=training_targets,
-    validation_examples=selected_validation_examples,
-    validation_targets=validation_targets
-)
-
-
-
-
-
-
-
