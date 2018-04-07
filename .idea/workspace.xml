@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fedc41d7-8b09-49ae-be16-951c780a73d8" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/logistic_regression.py" afterPath="$PROJECT_DIR$/logistic_regression.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -65,13 +66,25 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="feature_crosses.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="feature_crosses.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/feature_crosses.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="171">
               <caret line="127" column="37" lean-forward="false" selection-start-line="127" selection-start-column="26" selection-end-line="127" selection-end-column="37" />
               <folding>
                 <element signature="e#24#35#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="logistic_regression.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/logistic_regression.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="185">
+              <caret line="220" column="0" lean-forward="true" selection-start-line="220" selection-start-column="0" selection-end-line="220" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#11#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -112,6 +125,7 @@
         <option value="$PROJECT_DIR$/lamdba_test.py" />
         <option value="$PROJECT_DIR$/feature_sets.py" />
         <option value="$PROJECT_DIR$/feature_crosses.py" />
+        <option value="$PROJECT_DIR$/logistic_regression.py" />
       </list>
     </option>
   </component>
@@ -592,6 +606,16 @@
           <caret line="127" column="37" lean-forward="false" selection-start-line="127" selection-start-column="26" selection-end-line="127" selection-end-column="37" />
           <folding>
             <element signature="e#24#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/logistic_regression.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="185">
+          <caret line="220" column="0" lean-forward="true" selection-start-line="220" selection-start-column="0" selection-end-line="220" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
           </folding>
         </state>
       </provider>
