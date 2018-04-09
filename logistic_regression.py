@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import math
 
 from IPython import display
@@ -57,8 +58,9 @@ def preprocess_targets(california_housing_dataframe):
   output_targets = pd.DataFrame()
   # Create a boolean categorical feature representing whether the
   # medianHouseValue is above a set threshold.
+  # 创建一个新的特征：该特征是一个bool值，表示medianHouseValue是不是超过一个限定值。astype：强制类型转换。
   output_targets["median_house_value_is_high"] = (
-    california_housing_dataframe["median_house_value"] > 265000).astype(float)
+      california_housing_dataframe["median_house_value"] > 265000).astype(float)
   return output_targets
 
 # Choose the first 12000 (out of 17000) examples for training.
@@ -121,7 +123,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     return features, labels
 
 
-def train_linear_regressor_model(
+def train_linear_classifier_model(
         learning_rate,
         steps,
         batch_size,
@@ -129,7 +131,7 @@ def train_linear_regressor_model(
         training_targets,
         validation_examples,
         validation_targets):
-    """Trains a linear regression model.
+    """Trains a linear regression model of one feature.
 
     In addition to training, this function also prints training progress information,
     as well as a plot of the training and validation loss over time.
@@ -149,16 +151,16 @@ def train_linear_regressor_model(
         `california_housing_dataframe` to use as target for validation.
 
     Returns:
-      A `LinearRegressor` object trained on the training data.
+      A `LinearClassifier` object trained on the training data.
     """
 
     periods = 10
     steps_per_period = steps / periods
 
-    # Create a linear regressor object.
+    # Create a linear classifier object.
     my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
-    linear_regressor = tf.estimator.LinearRegressor(
+    linear_classifier = tf.estimator.LinearClassifier(
         feature_columns=construct_feature_columns(training_examples),
         optimizer=my_optimizer
     )
@@ -179,50 +181,72 @@ def train_linear_regressor_model(
     # Train the model, but do so inside a loop so that we can periodically assess
     # loss metrics.
     print "Training model..."
-    print "RMSE (on training data):"
-    training_rmse = []
-    validation_rmse = []
+    print "LogLoss (on training data):"
+    training_log_losses = []
+    validation_log_losses = []
     for period in range(0, periods):
         # Train the model, starting from the prior state.
-        linear_regressor.train(
+        linear_classifier.train(
             input_fn=training_input_fn,
             steps=steps_per_period
         )
-
+        # 训练不可能一次完成，所以拿训练集来进行预测，Loss不可能是0。
         # Take a break and compute predictions.
-        training_predictions = linear_regressor.predict(input_fn=predict_training_input_fn)
-        training_predictions = np.array([item['predictions'][0] for item in training_predictions])
+        training_probabilities = linear_classifier.predict(input_fn=predict_training_input_fn)
+        training_probabilities = np.array([item['probabilities'] for item in training_probabilities])
 
-        validation_predictions = linear_regressor.predict(input_fn=predict_validation_input_fn)
-        validation_predictions = np.array([item['predictions'][0] for item in validation_predictions])
+        validation_probabilities = linear_classifier.predict(input_fn=predict_validation_input_fn)
+        validation_probabilities = np.array([item['probabilities'] for item in validation_probabilities])
 
-        # Compute training and validation loss.
-        training_root_mean_squared_error = math.sqrt(
-            metrics.mean_squared_error(training_predictions, training_targets))
-        validation_root_mean_squared_error = math.sqrt(
-            metrics.mean_squared_error(validation_predictions, validation_targets))
+        # Sklearn 的 log_loss 函数可基于这些概率计算对数损失函数，非常方便。metrics是Sklearn库的。
+        # 对数损失函数在笔记上有记录。
+        training_log_loss = metrics.log_loss(training_targets, training_probabilities)
+        validation_log_loss = metrics.log_loss(validation_targets, validation_probabilities)
         # Occasionally print the current loss.
-        print "  period %02d : %0.2f" % (period, training_root_mean_squared_error)
+        print "  period %02d : %0.2f" % (period, training_log_loss)
         # Add the loss metrics from this period to our list.
-        training_rmse.append(training_root_mean_squared_error)
-        validation_rmse.append(validation_root_mean_squared_error)
+        training_log_losses.append(training_log_loss)
+        validation_log_losses.append(validation_log_loss)
     print "Model training finished."
 
-    # Output a graph of loss metrics over periods.
-    plt.ylabel("RMSE")
-    plt.xlabel("Periods")
-    plt.title("Root Mean Squared Error vs. Periods")
-    plt.tight_layout()
-    plt.plot(training_rmse, label="training")
-    plt.plot(validation_rmse, label="validation")
+    # 计算AUC和准确率
+    # AUC即ROC曲线下面积
+    evaluation_metrics = linear_classifier.evaluate(input_fn=predict_validation_input_fn)
+
+    print "AUC on the validation set: %0.2f" % evaluation_metrics['auc']
+    print "Accuracy on the validation set: %0.2f" % evaluation_metrics['accuracy']
+
+    """
+    # 计算ROC曲线的真正例率和假正例率
+    validation_probabilities = linear_classifier.predict(input_fn=predict_validation_input_fn)
+    validation_probabilities = np.array([item['probabilities'][1] for item in validation_probabilities])
+
+    # 注：false_positive_rate假正例率，true_positive_rate真正例率：这两个参数均是一个数组，他们都是在不同阈值情况下得到的
+    false_positive_rate, true_positive_rate, threshold = metrics.roc_curve(
+        validation_targets, validation_probabilities)
+    plt.plot(false_positive_rate, true_positive_rate, label="our model")
+    plt.plot([0, 1], [0, 1], label="random classifier")
     plt.legend()
+    plt.show()
+    """
 
-    return linear_regressor
+    # Output a graph of loss metrics over periods.
+    plt.ylabel("LogLoss")
+    plt.xlabel("Periods")
+    plt.title("LogLoss vs. Periods")
+    plt.tight_layout()
+    plt.plot(training_log_losses, label="training")
+    plt.plot(validation_log_losses, label="validation")
+    plt.legend()
+    plt.show()
 
-linear_regressor = train_linear_regressor_model(
-    learning_rate=0.000001,
-    steps=200,
-    batch_size=20,
+    return linear_classifier
+
+
+linear_classifier = train_linear_classifier_model(
+    learning_rate=0.000003,
+    steps=20000,
+    batch_size=500,
     training_examples=training_examples,
     training_targets=training_targets,
     validation_examples=validation_examples,
