@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import sys
 
 list1 = [3, 5, -4, -1, 0, -2, -6]
 list2 = sorted(list1, key=lambda x: abs(x))
@@ -10,3 +12,6 @@ print list3
 judgeTrueOrFalse = lambda x: 1 if x>0 else 0;
 for num in list1:
     print judgeTrueOrFalse(num)
+
+print (sys.path)
+print (os.env)
