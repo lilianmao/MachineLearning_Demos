@@ -13,5 +13,11 @@ judgeTrueOrFalse = lambda x: 1 if x>0 else 0;
 for num in list1:
     print judgeTrueOrFalse(num)
 
-print (sys.path)
-print (os.env)
+# print (sys.path)
+# print (os.env)
+
+X = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+newX = X[:, np.newaxis]
+print X
+print newX
+print X.shape, newX.shape

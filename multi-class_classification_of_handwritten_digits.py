@@ -246,7 +246,6 @@ def train_linear_classification_model(
   plt.legend()
   plt.show()
 
-  # 输出混淆矩阵，精度评价的一种标准格式，这里下面3行都不理解？？？
   cm = metrics.confusion_matrix(validation_targets, final_predictions)
   # Normalize the confusion matrix by row (i.e by the number of samples in each class)
   cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
@@ -341,13 +340,14 @@ def train_nn_regression_model(
         )
 
         # Take a break and compute probabilities.
-        # 系统会根据可能性帮你计算好这个feature属于那个label，这里probabilities只是展示一下。
-        # TODO: 争取找到无法调试的原因
+        # 系统会根据probabilities帮你计算好这个feature属于那个label，这里probabilities只是展示一下。
+        # probabilities是一个7500大小的list，每个list里面有一个10大小的list，存着各个feature的可能性，取最大的可能性作为识别的结果。
         training_predictions = list(classifier.predict(input_fn=predict_training_input_fn))
         training_probabilities = np.array([item['probabilities'] for item in training_predictions])
         training_pred_class_id = np.array([item['class_ids'][0] for item in training_predictions])
         training_pred_one_hot = tf.keras.utils.to_categorical(training_pred_class_id, 10)
         # 这里应该是将id取出来，变成二进制的形式，在10长度的数组中，第6个位置放个1，标记为6。（从第0个开始计算）
+        # one_hot作用就是将数据变成向量Vector，如果数据是不是向量，存在大小之分，影响机器学习的效果。
 
         validation_predictions = list(classifier.predict(input_fn=predict_validation_input_fn))
         validation_probabilities = np.array([item['probabilities'] for item in validation_predictions])
@@ -363,7 +363,7 @@ def train_nn_regression_model(
         training_errors.append(training_log_loss)
         validation_errors.append(validation_log_loss)
     print "Model training finished."
-    # Remove event files to save disk space.
+    # 移除事件文件来节省空间
     _ = map(os.remove, glob.glob(os.path.join(classifier.model_dir, 'events.out.tfevents*')))
 
     # Calculate final predictions (not probabilities, as above).
@@ -382,7 +382,12 @@ def train_nn_regression_model(
     plt.legend()
     plt.show()
 
-    # 输出混淆矩阵，精度评价的一种标准格式，这里下面3行都不理解？？？
+    # 输出混淆矩阵，这是精度评价的一种标准格式。
+    # 1. 首先是sk-learn的metric，来创建混淆矩阵，这个类似于真假例，表格的一个维度是真实情况，另一个维度是预测情况
+    # 详见：http://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
+    # 2. cm.sum(axis=1)代表横坐标相加的结果，如果是axix=0是纵坐标。
+    # [:, np.newaxis]增加一个维度，增加了一个矩阵维度（详见lamdba_test.py），该维度没有数据，运算行为遵照增加过维度的array进行运算，合并array时有用（具体怎么有用没有搞清楚）。第一个：是选择矩阵全部行。
+    # 3. sns.heatmap获取热力图
     cm = metrics.confusion_matrix(validation_targets, final_predictions)
     # Normalize the confusion matrix by row (i.e by the number of samples in each class)
     cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
