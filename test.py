@@ -21,3 +21,6 @@ newX = X[:, np.newaxis]
 print X
 print newX
 print X.shape, newX.shape
+
+train_url = 'https://storage.googleapis.com/mledu-datasets/sparse-data-embedding/train.tfrecord'
+print train_url.split('/')[-1]
