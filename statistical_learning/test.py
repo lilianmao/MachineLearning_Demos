@@ -11,3 +11,6 @@ print group.shape[0]
 
 martix = tile([0, 0], [4, 1])
 print martix
+
+printVec = [0]*9
+print printVec, type(printVec)
