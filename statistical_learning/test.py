@@ -26,5 +26,14 @@ print listOfTokens
 
 print [tok.lower() for tok in listOfTokens if len(tok) > 2]
 
-ny = feedparser.parse('http://newyork.craigslist.org/stp/index.rss')
-print ny, ny['entries'], len(ny['entries'])
+# ny = feedparser.parse('http://newyork.craigslist.org/stp/index.rss')
+# print ny, ny['entries'], len(ny['entries'])
+
+# append和extend用法的区别
+a = [1, 2, 3]
+b = [4, 5, 6]
+
+a.append(b)
+a.extend(b)
+
+print a
