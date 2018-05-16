@@ -37,3 +37,11 @@ a.append(b)
 a.extend(b)
 
 print a
+
+def deleteList(names):
+    names[1] = 'lilianmao'
+    del(names[0])
+
+names = ['lilin', 'lee']
+deleteList(names=names)         # 貌似传送了地址，del对list本身操作
+print names                     # 输出['lilianmao']

@@ -71,14 +71,14 @@ def majorityCnt(classList):
     sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
     return sortedClassCount[0][0]
 
-# 创造决策
+# 创造决策树
 def createTree(dataSet, names):
     classList = [example[-1] for example in dataSet]
     if classList.count(classList[0]) == len(classList):     # List的第一个值的个数就等于List的长度，即类别相同，停止划分。
         return classList[0]
     if len(dataSet[0]) == 1:                                # 如果dataSet只有最后一列了，即遍历完所有特征，仍没有分清，挑选出现次数最多的类别多为返回。
         return majorityCnt(classList)
-    bestFeat = chooseBestFeatureToSplit(dataSet)            # 选择最好的feature，并找到name构成字典。
+    bestFeat = chooseBestFeatureToSplit(dataSet)            # 选择最好的feature，并找到feature对应的name构成字典。
     bestFeatName = names[bestFeat]
     myTree = {bestFeatName : {}}
     del(names[bestFeat])
@@ -89,15 +89,16 @@ def createTree(dataSet, names):
         myTree[bestFeatName][value] = createTree(splitDataset(dataSet, bestFeat, value), subNames)
     return myTree
 
+# 测试函数，尝试新的值进行划分。
 def classify(inputTree, featNames, testVec):
-    firstStr = inputTree.keys()[0]
-    secondDict = inputTree[firstStr]
-    featIndex = featNames.index(firstStr)
-    key = testVec[featIndex]
-    valueOfFeat = secondDict[key]
-    if isinstance(valueOfFeat, dict):
+    firstStr = inputTree.keys()[0]          # firstStr：tree的第一个key
+    secondDict = inputTree[firstStr]        # secondDict：该节点下的子节点的dict
+    featIndex = featNames.index(firstStr)   # featIndex：找到第几个feature
+    key = testVec[featIndex]                # key：该featIndex下对应的测试数据的值
+    valueOfFeat = secondDict[key]           # valueOfFeat：从secondDict中找到对应的value
+    if isinstance(valueOfFeat, dict):       # 如果valueOfFeat是字典，说明还要继续。
         className = classify(valueOfFeat, featNames, testVec)
-    else:
+    else:                                   # 如果valueOfFeat不是字典，说明分类已经结束。
         className = valueOfFeat
     return className
 
@@ -113,5 +114,12 @@ def grabTree(filename):
 
 if __name__ == "__main__":
     dataSet, names = createDataSet()
-    myTree = createTree(dataSet, names)
-    print myTree
+    myTree = createTree(dataSet, names)         # 这里names传递的是地址，会因为del而改变。所以下面再次进行获取。
+    dataSet, names = createDataSet()
+    result = classify(myTree, names, [1, 1])
+    print result
+
+    # 文件存储
+    storeTree(myTree, 'classifierStorage.txt')
+    storeTree = grabTree('classifierStorage.txt')
+    print storeTree
