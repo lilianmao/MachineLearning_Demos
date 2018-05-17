@@ -4,7 +4,7 @@
 
 import matplotlib.pyplot as plt
 
-desicionNode = dict(boxstyle = "sawtooth", fc = "0.8")
+decisionNode = dict(boxstyle = "sawtooth", fc = "0.8")
 leafNode = dict(boxstyle = "round4", fc = "0.8")
 arrow_args = dict(arrowstyle = "<-")
 
@@ -13,7 +13,7 @@ def getNumLeafs(myTree):
     firstStr = myTree.keys()[0]
     secondDict = myTree[firstStr]
     for key in secondDict.keys():
-        if type(secondDict[key].__name__=='dict'):
+        if type(secondDict[key]).__name__ == 'dict':    # 判断类型是不是dict
             numLeafs += getNumLeafs(secondDict[key])
         else:
             numLeafs += 1
@@ -24,7 +24,7 @@ def getTreeDepth(myTree):
     firstStr = myTree.keys()[0]
     secondDict = myTree[firstStr]
     for key in secondDict.keys():
-        if type(secondDict[key]).__name__=='dict':
+        if type(secondDict[key]).__name__ == 'dict':
             thisDepth = 1 + getTreeDepth(secondDict[key])
         else:
             thisDepth = 1
@@ -50,9 +50,9 @@ def plotTree(myTree, parentPt, nodeText):
     plotMidText(centerPt, parentPt, nodeText)
     plotNode(firstStr, centerPt, parentPt, decisionNode)
     secondDict = myTree[firstStr]
-    plotTree.yOff = plotTree.yOff = 1.0/plotTree().totalD
+    plotTree.yOff = plotTree.yOff - 1.0/plotTree.totalD
     for key in secondDict.keys():
-        if type(secondDict[key]).__name__=='dict':
+        if type(secondDict[key]).__name__ == 'dict':
             plotTree(secondDict[key], centerPt, str(key))
         else:
             plotTree.xOff = plotTree.xOff = 1.0/plotTree.totalW
@@ -68,7 +68,7 @@ def createPlot(inTree):
     plotTree.totalW = float(getNumLeafs(inTree))
     plotTree.totalD = float(getTreeDepth(inTree))
     plotTree.xOff = -0.5 / plotTree.totalW; plotTree.yOff = 1.0;
-    plotTree(int, (0.5, 1.0), '')
+    plotTree(inTree, (0.5, 1.0), '')
     plt.show()
 
 def retrieveTree(i):
@@ -77,4 +77,6 @@ def retrieveTree(i):
                   ]
     return listOfTrees[i]
 
+if __name__ == "__main__":
+    createPlot(retrieveTree(1))
 

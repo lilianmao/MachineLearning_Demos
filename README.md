@@ -1,2 +1,3 @@
 # MachineLearning_Demos
-some MachineLearing deoms
+
+> 记录一些MachineLearning的demo

@@ -112,6 +112,14 @@ def grabTree(filename):
     fr = open(filename)
     return pickle.load(fr)
 
+# 测试lenses文件
+def testFile(filename):
+    fr = open(filename)
+    lenses = [inst.strip().split('\t') for inst in fr.readlines()]
+    lensesNames = ['age', 'prescript', 'astigmatic', 'tearRate']
+    lensesTree = createTree(lenses, lensesNames)
+    print lensesTree
+
 if __name__ == "__main__":
     dataSet, names = createDataSet()
     myTree = createTree(dataSet, names)         # 这里names传递的是地址，会因为del而改变。所以下面再次进行获取。
@@ -123,3 +131,5 @@ if __name__ == "__main__":
     storeTree(myTree, 'classifierStorage.txt')
     storeTree = grabTree('classifierStorage.txt')
     print storeTree
+
+    testFile('lenses.txt')
